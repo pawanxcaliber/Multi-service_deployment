@@ -17,12 +17,14 @@ pipeline {
             steps {
                 script {
                     echo 'Building backend Docker image...'
-                    dir('backend') {
-                        docker.build("backend-image:${env.BUILD_NUMBER}")
+                    // Run docker build inside a docker:latest container
+                    docker.image('docker:latest').inside {
+                        sh "docker build -t backend-image:${env.BUILD_NUMBER} ./backend"
                     }
                     echo 'Building frontend Docker image...'
-                    dir('frontend') {
-                        docker.build("frontend-image:${env.BUILD_NUMBER}")
+                    // Run docker build inside a docker:latest container
+                    docker.image('docker:latest').inside {
+                        sh "docker build -t frontend-image:${env.BUILD_NUMBER} ./frontend"
                     }
                 }
             }
@@ -32,13 +34,11 @@ pipeline {
             steps {
                 script {
                     echo 'Applying Terraform configuration...'
-                    dir('.') {
-                        // Use a Docker container for Terraform
-                        withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
-                            docker.image('hashicorp/terraform:latest').inside {
-                                sh 'terraform init -no-color'
-                                sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" -var=\"your_repository=${GITHUB_REPO_URL}\" -var=\"render_owner_id=${RENDER_OWNER_ID}\""
-                            }
+                    // Use a Docker container for Terraform
+                    withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
+                        docker.image('hashicorp/terraform:latest').inside {
+                            sh 'terraform init -no-color'
+                            sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" -var=\"your_repository=${GITHUB_REPO_URL}\" -var=\"render_owner_id=${RENDER_OWNER_ID}\""
                         }
                     }
                 }
