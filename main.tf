@@ -16,7 +16,7 @@ provider "render" {
 resource "render_web_service" "backend" {
   name          = "backend-service"
   region        = "oregon"
-  plan          = "starter"
+  plan          = "free"
   start_command = "flask run --host=0.0.0.0"
 
   runtime_source = {
