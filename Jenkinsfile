@@ -16,12 +16,10 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    echo 'Building backend Docker image...'
+                    echo 'Building Docker images...'
+                    // Run all Docker commands inside a docker:latest container
                     docker.image('docker:latest').inside {
                         sh "docker build -t backend-image:${env.BUILD_NUMBER} ./backend"
-                    }
-                    echo 'Building frontend Docker image...'
-                    docker.image('docker:latest').inside {
                         sh "docker build -t frontend-image:${env.BUILD_NUMBER} ./frontend"
                     }
                 }
@@ -32,6 +30,7 @@ pipeline {
             steps {
                 script {
                     echo 'Applying Terraform configuration...'
+                    // Use a Docker container for Terraform
                     withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
                         docker.image('hashicorp/terraform:latest').inside {
                             sh 'terraform init -no-color'
