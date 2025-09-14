@@ -24,18 +24,21 @@ pipeline {
         }
         
         stage('Terraform Apply') {
-            steps {
-                script {
-                    echo 'Applying Terraform configuration...'
-                    withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
-                        sh 'terraform init -no-color'
-                        sh "terraform apply -auto-approve -no-color \
-                            -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" \
-                            -var=\"your_repository=${GITHUB_REPO_URL}\" \
-                            -var=\"render_owner_id=${RENDER_OWNER_ID}\""
-                    }
-                }
+    steps {
+        script {
+            echo 'Applying Terraform configuration...'
+            withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
+                sh 'terraform init -no-color'
+                sh """
+                    terraform apply -auto-approve -no-color \
+                    -var="render_api_key=${RENDER_API_KEY_SECRET}" \
+                    -var="your_repository=${GITHUB_REPO_URL}" \
+                    -var="render_owner_id=${RENDER_OWNER_ID}"
+                """
             }
         }
+    }
+}
+
     }
 }
