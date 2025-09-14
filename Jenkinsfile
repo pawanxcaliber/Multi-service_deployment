@@ -1,9 +1,15 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:latest'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
-        // The URL of your GitHub repository
         GITHUB_REPO_URL = 'https://github.com/pawanxcaliber/Multi-service_deployment.git'
+        // The owner ID is a static value and can be hardcoded here
+        RENDER_OWNER_ID = 'tea-d07mjgruibrs73fkpju0'
     }
 
     stages {
@@ -12,34 +18,32 @@ pipeline {
                 git branch: 'main', url: "${GITHUB_REPO_URL}"
             }
         }
-        
-        // This stage is not strictly necessary for Render's deployment, but it is part of a complete CI workflow
+
         stage('Build Docker Images') {
             steps {
                 script {
                     echo 'Building backend Docker image...'
                     dir('backend') {
-                        docker.build("backend-image:${env.BUILD_NUMBER}")
+                        sh "docker build -t backend-image:${env.BUILD_NUMBER} ."
                     }
                     echo 'Building frontend Docker image...'
                     dir('frontend') {
-                        docker.build("frontend-image:${env.BUILD_NUMBER}")
+                        sh "docker build -t frontend-image:${env.BUILD_NUMBER} ."
                     }
                 }
             }
         }
-        
+
         stage('Terraform Apply') {
             steps {
                 script {
                     echo 'Applying Terraform configuration...'
                     dir('.') {
                         // Use a Docker container for Terraform
-                        docker.image('hashicorp/terraform:latest').inside {
-                            // Load the API key from Jenkins credentials and map it to the variable expected by Terraform
-                            withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
+                        withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
+                            docker.image('hashicorp/terraform:latest').inside {
                                 sh 'terraform init -no-color'
-                                sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" -var=\"your_repository=${GITHUB_REPO_URL}\" -var=\"render_owner_id=tea-d07mjgruibrs73fkpju0\""
+                                sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" -var=\"your_repository=${GITHUB_REPO_URL}\" -var=\"render_owner_id=${RENDER_OWNER_ID}\""
                             }
                         }
                     }
