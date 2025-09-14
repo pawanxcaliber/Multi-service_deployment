@@ -61,3 +61,26 @@ The Jenkins job is configured to:
 2.  When a change is detected, it triggers the pipeline defined in the Jenkinsfile.
     
 3.  The pipeline runs through each stage, automating the build and deployment process.
+
+### Resolving Jenkins Docker isuues
+
+docker run -d \
+  --name jenkins \
+  -p 9090:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /usr/bin/docker:/usr/bin/docker \
+  --user root \
+  --restart=unless-stopped \
+  jenkins/jenkins:lts
+
+Terraform inside Jenkins Conatiner
+docker exec -it jenkins bash
+
+Execute inside the Jenkins conatiner: 
+
+apt-get update && apt-get install -y wget unzip
+wget https://releases.hashicorp.com/terraform/1.9.5/terraform_1.9.5_linux_amd64.zip
+unzip terraform_1.9.5_linux_amd64.zip
+mv terraform /usr/local/bin/
+terraform -v
