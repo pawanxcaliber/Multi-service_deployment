@@ -17,8 +17,9 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker images...'
-                    // Run all Docker commands inside a docker:latest container
-                    docker.image('docker:latest').inside {
+                    // Use Docker-in-Docker (DinD)
+                    docker.image('docker:20.10-dind').inside('--privileged') {
+                        sh "docker version"
                         sh "docker build -t backend-image:${env.BUILD_NUMBER} ./backend"
                         sh "docker build -t frontend-image:${env.BUILD_NUMBER} ./frontend"
                     }
@@ -30,7 +31,7 @@ pipeline {
             steps {
                 script {
                     echo 'Applying Terraform configuration...'
-                    // Use a Docker container for Terraform
+                    // Use Terraform container
                     withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
                         docker.image('hashicorp/terraform:latest').inside {
                             sh 'terraform init -no-color'
