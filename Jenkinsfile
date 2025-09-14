@@ -2,8 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // This is the ID of the secret text credential you created in Jenkins
-        RENDER_API_KEY = credentials('RENDER_API_KEY')
         // The URL of your GitHub repository
         GITHUB_REPO_URL = 'https://github.com/pawanxcaliber/Multi-service_deployment.git'
     }
@@ -14,16 +12,15 @@ pipeline {
                 git branch: 'main', url: "${GITHUB_REPO_URL}"
             }
         }
-
+        
+        // This stage is not strictly necessary for Render's deployment, but it is part of a complete CI workflow
         stage('Build Docker Images') {
             steps {
                 script {
-                    // Build the backend image
                     echo 'Building backend Docker image...'
                     dir('backend') {
                         docker.build("backend-image:${env.BUILD_NUMBER}")
                     }
-                    // Build the frontend image
                     echo 'Building frontend Docker image...'
                     dir('frontend') {
                         docker.build("frontend-image:${env.BUILD_NUMBER}")
@@ -31,7 +28,7 @@ pipeline {
                 }
             }
         }
-
+        
         stage('Terraform Apply') {
             steps {
                 script {
@@ -39,10 +36,11 @@ pipeline {
                     dir('.') {
                         // Use a Docker container for Terraform
                         docker.image('hashicorp/terraform:latest').inside {
-                            // Initialize Terraform
-                            sh 'terraform init -no-color'
-                            // Apply the configuration with the variables
-                            sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY}\" -var=\"your_repository=${GITHUB_REPO_URL}\""
+                            // Load the API key from Jenkins credentials and map it to the variable expected by Terraform
+                            withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
+                                sh 'terraform init -no-color'
+                                sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" -var=\"your_repository=${GITHUB_REPO_URL}\" -var=\"render_owner_id=tea-d07mjgruibrs73fkpju0\""
+                            }
                         }
                     }
                 }
