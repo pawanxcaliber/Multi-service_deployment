@@ -17,12 +17,8 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker images...'
-                    // Use Docker-in-Docker (DinD)
-                    docker.image('docker:20.10-dind').inside('--privileged') {
-                        sh "docker version"
-                        sh "docker build -t backend-image:${env.BUILD_NUMBER} ./backend"
-                        sh "docker build -t frontend-image:${env.BUILD_NUMBER} ./frontend"
-                    }
+                    sh "docker build -t backend-image:${env.BUILD_NUMBER} ./backend"
+                    sh "docker build -t frontend-image:${env.BUILD_NUMBER} ./frontend"
                 }
             }
         }
@@ -31,12 +27,12 @@ pipeline {
             steps {
                 script {
                     echo 'Applying Terraform configuration...'
-                    // Use Terraform container
                     withCredentials([string(credentialsId: 'RENDER_API_KEY', variable: 'RENDER_API_KEY_SECRET')]) {
-                        docker.image('hashicorp/terraform:latest').inside {
-                            sh 'terraform init -no-color'
-                            sh "terraform apply -auto-approve -no-color -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" -var=\"your_repository=${GITHUB_REPO_URL}\" -var=\"render_owner_id=${RENDER_OWNER_ID}\""
-                        }
+                        sh 'terraform init -no-color'
+                        sh "terraform apply -auto-approve -no-color \
+                            -var=\"render_api_key=${RENDER_API_KEY_SECRET}\" \
+                            -var=\"your_repository=${GITHUB_REPO_URL}\" \
+                            -var=\"render_owner_id=${RENDER_OWNER_ID}\""
                     }
                 }
             }
